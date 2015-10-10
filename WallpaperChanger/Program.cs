@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2014 Phillip Hansen
+﻿// Developed by Phillip Hansen
 //
 // This is a command line program to change the wallpaper.  The program takes two arguments: the file (including path) to use as wallpaper, and the style (Tiled, Centered, Stretched, Fit, Fill)
 // Syntax is: <file|directory> <style> <location>
@@ -66,8 +66,8 @@ namespace WallpaperChanger
             try
             {
                 System.Drawing.Image img = System.Drawing.Image.FromFile(file);
-                // convert and save the image as a bmp file (bmp format is required for the wallpaper)
-                img.Save(storagePath, System.Drawing.Imaging.ImageFormat.Bmp);
+                // convert and save the image as a png file (png format should work better than bmp to avoid artifacts)
+                img.Save(storagePath, System.Drawing.Imaging.ImageFormat.Png);
             
                 // update the regsitry
                 RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop", true);
@@ -133,7 +133,7 @@ namespace WallpaperChanger
 
         static int Main(string[] args)
         {
-            String help = "\nCopyright (c) 2014 Phillip Hansen  http://sg20.com (version 1.4)\n\nSyntax is: <file|directory> <style> <location>\n\n  <file> is the complete path to the file\n  <directory> is the complete path to a directory containing image files\n    a random image from the directory will be set as the background\n  <style> is an integer (if no style is specified it defaults to Stretched):\n    0 for Tiled\n    1 for Centered\n    2 for Stretched\n    3 for Fit (Windows 7 or later)\n    4 for Fill (Windows 7 or later)\n  <location> is the complete path to a directory for storing the generated file\n    defaults to the temp folder which should be fine in most cases";
+            String help = "\nCopyright (c) 2005-2015 Phillip Hansen  http://sg20.com (version 1.5)\nSource available at: https://github.com/philhansen/WallpaperChanger\n\nSyntax is: <file|directory> <style> <location>\n\n  <file> is the complete path to the file\n  <directory> is the complete path to a directory containing image files\n    a random image from the directory will be set as the background\n  <style> is an integer (if no style is specified it defaults to Stretched):\n    0 for Tiled\n    1 for Centered\n    2 for Stretched\n    3 for Fit (Windows 7 or later)\n    4 for Fill (Windows 7 or later)\n  <location> is the complete path to a directory for storing the generated file\n    defaults to the temp folder which should be fine in most cases";
             help += "\n\nIf the style argument is not specified it will default to Stretched.";
             help += "\n\nOptional flags:\n  -h, -help   - Display the usage help\n  -r, -remove - Remove the current wallpaper";
             help += "\n\nAlternatively a config file can be placed in the same directory as the WallpaperChanger executable. The file should be named 'config' without any file extension.  Each line in the file should have the full path to an image and can optionally include the style code to use.  If the style is not specified it will default to Stretched.";
@@ -178,7 +178,7 @@ namespace WallpaperChanger
             
             Style style = Style.Stretched; // default value
             // get the path to the user's temp folder
-            String storagePath = Path.Combine(Path.GetTempPath(), "wallpaper.bmp");
+            String storagePath = Path.Combine(Path.GetTempPath(), "wallpaper.png");
 
             if (args.Length >= 2)
             {
@@ -193,7 +193,7 @@ namespace WallpaperChanger
                     Console.WriteLine("\n{0} is not a valid directory.", args[2]);
                     return 1;
                 }
-                storagePath = Path.Combine(args[2], "wallpaper.bmp");
+                storagePath = Path.Combine(args[2], "wallpaper.png");
             }
 
             if (usingConfig)

@@ -5,7 +5,11 @@ WallpaperChanger is a command line utility for changing the wallpaper (desktop b
 
 The intent of this program is not to be a standalone wallpaper program (it is too cumbersome to use for that). It is intended to be used as a “helper” utility program for another program or script.
 
-This utility works fine with Windows XP, Vista, 7, and 8.
+This utility works fine with Windows XP, Vista, 7, 8, and 10.
+
+The compiled program is included as WallpaperChanger.exe
+
+Leave comments or questions on this blog post: http://sg20.com/techblog/2011/06/23/wallpaper-changer-command-line-utility
 
 ## Use
 
@@ -62,5 +66,6 @@ I currently build the program using Microsoft Visual Studio 2013 Express edition
 
 ## What’s New
 
+* 1.5 - Wallpaper is now converted to png instead of bmp to avoid artifacts
 * 1.4 – Added remove flag and config file support
 * 1.3 – Added two new styles for Windows 7 or later (Fit and Fill)
