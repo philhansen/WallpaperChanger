@@ -42,7 +42,7 @@ any file extension.  Each line in the file should have the full path to
 an image and can optionally include the style code to use.  If the style
 is not specified it will default to Stretched.
 
-The file type can be any of the standard picture types (bmp, jpg, gif, etc.). The program will automatically convert the file to a bmp file (required by windows) and place it within the users temp directory. Storing the bmp file in the temp directory should be fine in most cases, however if you would prefer to use an alternative directory you can specify it as parameter number 3.
+The file type can be any of the standard picture types (png, bmp, jpg, gif, etc.). The program will automatically convert the file to a png/bmp file and place it within the users temp directory. Storing the png/bmp file in the temp directory should be fine in most cases, however if you would prefer to use an alternative directory you can specify it as parameter number 3.  On Windows 8 or higher it will use a png file for better quality.  It seems Windows 7 and lower cannot use a png file directly so a bmp file is used instead.  Note: On Windows 7 (and lower) if you are using extremely high resolution images then you may run into the "artifact" problem after Windows sets the file as the background.  If you notice artifacts then my recommendation is to use a separate program to lower the resolution of the original image or try saving it as a different file type first (e.g. jpg).
 
 When using the config file it should be formatted like this:
 
@@ -66,6 +66,7 @@ I currently build the program using Microsoft Visual Studio 2013 Express edition
 
 ## What’s New
 
+* 1.6 - Use png file for Windows 8 or higher, otherwise use bmp file
 * 1.5 - Wallpaper is now converted to png instead of bmp to avoid artifacts
 * 1.4 – Added remove flag and config file support
 * 1.3 – Added two new styles for Windows 7 or later (Fit and Fill)
