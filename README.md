@@ -7,7 +7,7 @@ The intent of this program is not to be a standalone wallpaper program (it is to
 
 This utility works fine with Windows XP, Vista, 7, 8, and 10.
 
-The compiled program is included as WallpaperChanger.exe
+The compiled program is available on the Releases page: https://github.com/philhansen/WallpaperChanger/releases
 
 Leave comments or questions on this blog post: http://sg20.com/techblog/2011/06/23/wallpaper-changer-command-line-utility
 
@@ -35,6 +35,9 @@ If the style argument is not specified it will default to Stretched.
 Optional flags:
 *   -h, -help   - Display the usage help
 *   -r, -remove - Remove the current wallpaper
+*   -m, monitor <index> - Set the image on the specified monitor (0 indexed)
+
+When using the monitor option, the full syntax is: `-m <index> <file|directory> <location>`  The style does not need to be specified since it appears to always default to Stretched.  Note this functionality is only available on Windows 8 or higher.
 
 Alternatively a config file can be placed in the same directory as the 
 WallpaperChanger executable. The file should be named 'config' without 
@@ -62,10 +65,11 @@ An error code will be returned if the program had an exception, for example inva
 
 ## Building the Program
 
-I currently build the program using Microsoft Visual Studio 2013 Express edition.  It targets the .NET Framework v2.0 as that is all it requires.
+I currently build the program using Microsoft Visual Studio 2017 Community edition.  It targets the .NET Framework v2.0 as that is all it requires.
 
 ## What’s New
 
+* 1.7 - Added ability to set the wallpaper for a specific monitor (Windows 8 or higher)
 * 1.6 - Use png file for Windows 8 or higher, otherwise use bmp file
 * 1.5 - Wallpaper is now converted to png instead of bmp to avoid artifacts
 * 1.4 – Added remove flag and config file support
