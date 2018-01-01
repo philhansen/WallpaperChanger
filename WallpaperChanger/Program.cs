@@ -26,8 +26,10 @@
 //
 // Alternatively a config file can be placed in the same directory as the WallpaperChanger executable.
 // The file should be named 'config' without any file extension.  Each line in the file should have
-// the full path to an image and can optionally include the style code to use.  If the style is not
-// specified it will default to Stretched.
+// the full path to an image and can optionally include the monitor index or the style code to use. 
+// If the style is not specified it will default to Stretched.
+//
+// When setting the monitor index in the config file the format of the line should be: <file> -m <index>
 // 
 // This program is intended to be used as a "helper" program that is executed from other programs
 
@@ -167,7 +169,7 @@ namespace WallpaperChanger
 
         static int Main(string[] args)
         {
-            String help = "\nCopyright (c) 2005-" + DateTime.Now.Year.ToString() + " Phillip Hansen  http://sg20.com (version 1.7)\n"
+            String help = "\nCopyright (c) 2005-" + DateTime.Now.Year.ToString() + " Phillip Hansen  http://sg20.com (version 1.8)\n"
                 + "Source available at: https://github.com/philhansen/WallpaperChanger\n\nSyntax is: <file|directory> <style> <location>\n\n"
                 + "  <file> is the complete path to the file\n"
                 + "  <directory> is the complete path to a directory containing image files\n"
@@ -183,7 +185,11 @@ namespace WallpaperChanger
                 + "  -m, -monitor <index> - Set the image on the specified monitor (0 indexed)\n"
                 + "     When using this option the full syntax is:\n"
                 + "       -m <index> <file|directory> <location>";
-            help += "\n\nAlternatively a config file can be placed in the same directory as the WallpaperChanger executable. The file should be named 'config' without any file extension.  Each line in the file should have the full path to an image and can optionally include the style code to use.  If the style is not specified it will default to Stretched.";
+            help += "\n\nAlternatively a config file can be placed in the same directory as the WallpaperChanger executable. "
+                + "The file should be named 'config' without any file extension.  Each line in the file should have the full path "
+                + "to an image and can optionally include the monitor index or the style code to use.  If the style is not specified it will default to Stretched."
+                + "\n\nWhen setting the monitor index in the config file the format of the line should be: <file> -m <index>";
+            help += "\n";
 
             String path = "";
             bool usingConfig = false;
@@ -271,13 +277,19 @@ namespace WallpaperChanger
             if (usingConfig)
             {
                 String file;
-                ProcessConfig(path, out file, out style);
+                ProcessConfig(path, out file, out style, out setMonitor, out monitorIndex);
                 if (file == null)
                 {
                     Console.WriteLine("\nNo valid images found in the config file: {0}", path);
                     return 1;
                 }
-                int status = Wallpaper.Set(file, style, storagePath);
+
+                int status = 0;
+                if (setMonitor)
+                    status = Wallpaper.SetMonitor(monitorIndex, file, storagePath);
+                else
+                    status = Wallpaper.Set(file, style, storagePath);
+                
                 if (status == 1)
                     return 1;
             }
@@ -376,10 +388,14 @@ namespace WallpaperChanger
         /// <param name="path">config file</param>
         /// <param name="file">filled in with the selected image file</param>
         /// <param name="style">filled in with the style</param>
-        static void ProcessConfig(String path, out String file, out Style style)
+        /// <param name="setMonitor">filled in with true if a monitor index was specified, false otherwise</param>
+        /// <param name="monitorIndex">filled in with the monitor index (when specified)</param>
+        static void ProcessConfig(String path, out String file, out Style style, out bool setMonitor, out int monitorIndex)
         {
             file = null;
             style = Style.Stretched;
+            setMonitor = false;
+            monitorIndex = 0;
             ArrayList files = new ArrayList();
             bool finished = false;
             
@@ -416,20 +432,33 @@ namespace WallpaperChanger
 
                 String f = (String)files[index];
                 // parse the file
-                // can contain file and style
+                // can contain file and optionally the monitor index or style
                 // split on the space between them, and combine values within double quotes (e.g. files with a space in the path)
                 MatchCollection matches = Regex.Matches(f, @"(?<match>[^\s""]+)|""(?<match>[^""]*)""");
                 String tmpFile = matches[0].Groups["match"].Value;
-                if (matches.Count == 2)
-                {
-                    style = (Wallpaper.Style)Enum.Parse(typeof(Wallpaper.Style), matches[1].Groups["match"].Value);
-                }
 
                 // make sure the image exists
                 if (File.Exists(tmpFile))
                 {
                     file = tmpFile;
                     finished = true;
+
+                    // parse the other options
+                    if (matches.Count >= 2)
+                    {
+                        string value = matches[1].Groups["match"].Value;
+                        // check if a monitor index is specified
+                        if (value == "-m" || value == "-monitor")
+                        {
+                            if (matches.Count >= 3 && IsWin8OrHigher() && int.TryParse(matches[2].Groups["match"].Value, out monitorIndex))
+                            {
+                                setMonitor = true;
+                            }
+                        }
+                        // otherwise parse the style
+                        else
+                            style = (Wallpaper.Style)Enum.Parse(typeof(Wallpaper.Style), matches[1].Groups["match"].Value);
+                    }
                 }
                 // remove it from the list
                 else

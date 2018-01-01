@@ -42,8 +42,10 @@ When using the monitor option, the full syntax is: `-m <index> <file|directory> 
 Alternatively a config file can be placed in the same directory as the 
 WallpaperChanger executable. The file should be named 'config' without 
 any file extension.  Each line in the file should have the full path to 
-an image and can optionally include the style code to use.  If the style
+an image and can optionally include the monitor index or the style code to use.  If the style
 is not specified it will default to Stretched.
+
+When setting the monitor index in the config file the format of the line should be: `<file> -m <index>`
 
 The file type can be any of the standard picture types (png, bmp, jpg, gif, etc.). The program will automatically convert the file to a png/bmp file and place it within the users temp directory. Storing the png/bmp file in the temp directory should be fine in most cases, however if you would prefer to use an alternative directory you can specify it as parameter number 3.  On Windows 8 or higher it will use a png file for better quality.  It seems Windows 7 and lower cannot use a png file directly so a bmp file is used instead.  Note: On Windows 7 (and lower) if you are using extremely high resolution images then you may run into the "artifact" problem after Windows sets the file as the background.  If you notice artifacts then my recommendation is to use a separate program to lower the resolution of the original image or try saving it as a different file type first (e.g. jpg).
 
@@ -54,6 +56,7 @@ C:\wallpaper1.jpg
 C:\wallpaper\wallpaper2.jpg 3
 D:\wallpaper3.png 2
 "D:\wallpapers to use\image1.jpg"
+C:\wallpaper4.jpg -m 1
 etc.
 ```
 
@@ -69,6 +72,7 @@ I currently build the program using Microsoft Visual Studio 2017 Community editi
 
 ## What’s New
 
+* 1.8 - Config file now supports the monitor index flag to set the wallpaper for a specific monitor (Windows 8 or higher) 
 * 1.7 - Added ability to set the wallpaper for a specific monitor (Windows 8 or higher)
 * 1.6 - Use png file for Windows 8 or higher, otherwise use bmp file
 * 1.5 - Wallpaper is now converted to png instead of bmp to avoid artifacts
