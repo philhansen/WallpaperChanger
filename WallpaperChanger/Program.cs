@@ -23,11 +23,14 @@
 //   -m, -monitor <index> - Set the image on the specified monitor (0 indexed)
 //      When using this option the full syntax is:
 //          -m <index> <file|directory> <location>
+//   -d, -depth <depth limit> - Set the depth for searching directories for image files (e.g. depth 2 will search the initial directory and 1 level deeper). Default is 1.
+//      When using this option the full syntax is:
+//          -d <depth limit> <file|directory> <location>
 //
 // Alternatively a config file can be placed in the same directory as the WallpaperChanger executable.
 // The file should be named 'config' without any file extension.  Each line in the file should have
-// the full path to an image and can optionally include the monitor index or the style code to use. 
-// If the style is not specified it will default to Stretched.
+// the full path to an image or directory and can optionally include the monitor index, directory depth, or the style code to use. 
+// If the style is not specified it will default to Stretched.  If the directory depth is not specified it will default to 1.
 //
 // When setting the monitor index in the config file the format of the line should be: <file> -m <index>
 // 
@@ -35,8 +38,10 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
 
@@ -62,7 +67,7 @@ namespace WallpaperChanger
             Fill
         }
 
-        public static int Set(String file, Style style, String storagePath)
+        public static int Set(string file, Style style, string storagePath)
         {
             try
             {
@@ -125,7 +130,7 @@ namespace WallpaperChanger
         /// <param name="file"></param>
         /// <param name="storagePath"></param>
         /// <returns></returns>
-        public static int SetMonitor(int monitorIndex, String file, String storagePath)
+        public static int SetMonitor(int monitorIndex, string file, string storagePath)
         {
             try
             {
@@ -167,9 +172,9 @@ namespace WallpaperChanger
             return 0;
         }
 
-        static int Main(string[] args)
+        public static int Main(string[] args)
         {
-            String help = "\nCopyright (c) 2005-" + DateTime.Now.Year.ToString() + " Phillip Hansen  http://sg20.com (version 1.8)\n"
+            string help = "\nCopyright (c) 2005-" + DateTime.Now.Year.ToString() + " Phillip Hansen  http://sg20.com (version 1.9)\n"
                 + "Source available at: https://github.com/philhansen/WallpaperChanger\n\nSyntax is: <file|directory> <style> <location>\n\n"
                 + "  <file> is the complete path to the file\n"
                 + "  <directory> is the complete path to a directory containing image files\n"
@@ -184,30 +189,35 @@ namespace WallpaperChanger
                 + "  -r, -remove - Remove the current wallpaper\n"
                 + "  -m, -monitor <index> - Set the image on the specified monitor (0 indexed)\n"
                 + "     When using this option the full syntax is:\n"
-                + "       -m <index> <file|directory> <location>";
+                + "       -m <index> <file|directory> <location>\n"
+                + "  -d, -depth <depth limit> - Set the depth for searching directories for image files (e.g. depth 2 will search the initial directory and 1 level deeper). Default is 1.\n"
+                + "     When using this option the full syntax is:\n"
+                + "       -d <depth limit> <file|directory> <location>";
             help += "\n\nAlternatively a config file can be placed in the same directory as the WallpaperChanger executable. "
                 + "The file should be named 'config' without any file extension.  Each line in the file should have the full path "
-                + "to an image and can optionally include the monitor index or the style code to use.  If the style is not specified it will default to Stretched."
+                + "to an image or directory and can optionally include the monitor index, directory depth, or the style code to use.  If the style is not specified it will default to Stretched. "
+                + "If the directory depth is not specified it will default to 1."
                 + "\n\nWhen setting the monitor index in the config file the format of the line should be: <file> -m <index>";
             help += "\n";
 
-            String path = "";
+            string path = "";
             bool usingConfig = false;
             bool setMonitor = false;
             int monitorIndex = 0;
+            int depthLimit = 1;
             Style style = Style.Stretched; // default value
             // Use png file for Win 8 or higher, otherwise use bmp file
-            String fileType = "png";
+            string fileType = "png";
             if (!IsWin8OrHigher())
                 fileType = "bmp";
             // get the path to the user's temp folder
-            String storagePath = Path.Combine(Path.GetTempPath(), "wallpaper." + fileType);
+            string storagePath = Path.Combine(Path.GetTempPath(), "wallpaper." + fileType);
 
             // check the arguments
             if (args.Length == 0)
             {
                 // a config file can be stored in the same directory as the wallpaper changer
-                String configFile = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), "config");
+                string configFile = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), "config");
                 if (File.Exists(configFile))
                 {
                     path = configFile;
@@ -222,61 +232,112 @@ namespace WallpaperChanger
 
             if (!usingConfig)
             {
-                // special check for a help flag
-                if (args[0] == "-h" || args[0] == "--help" || args[0] == "-help")
+                // flexible parsing: flags may appear anywhere; collect non-flag positional args
+                List<string> nonFlagArgs = new List<string>();
+
+                for (int i = 0; i < args.Length; i++)
                 {
-                    Console.WriteLine(help);
-                    return 1;
-                }
-                // remove wallpaper flag
-                else if (args[0] == "-r" || args[0] == "-remove")
-                {
-                    return Remove();
-                }
-                // specify monitor
-                else if (args[0] == "-m" || args[0] == "-monitor")
-                {
-                    if (!IsWin8OrHigher())
-                    {
-                        Console.WriteLine("Specifying a monitor is only supported on Windows 8 or higher\n");
-                        return 1;
-                    }
-                    if (args.Length < 3)
+                    string a = args[i];
+                    // help flag
+                    if (a == "-h" || a == "--help" || a == "-help")
                     {
                         Console.WriteLine(help);
                         return 1;
                     }
-                    setMonitor = true;
-                    monitorIndex = int.Parse(args[1]);
-                    path = args[2];
-                }
-                // retrieve file/directory if we are not using config file
-                else
-                {
-                    path = args[0];
-                    if (args.Length >= 2)
+                    // remove wallpaper flag
+                    else if (a == "-r" || a == "-remove")
                     {
-                        style = (Wallpaper.Style)Enum.Parse(typeof(Wallpaper.Style), args[1]);
+                        return Remove();
+                    }
+                    // monitor flag consumes the next argument as the index
+                    else if (a == "-m" || a == "-monitor")
+                    {
+                        if (!IsWin8OrHigher())
+                        {
+                            Console.WriteLine("Specifying a monitor is only supported on Windows 8 or higher\n");
+                            return 1;
+                        }
+                        if (i + 1 >= args.Length)
+                        {
+                            Console.WriteLine(help);
+                            return 1;
+                        }
+                        if (!int.TryParse(args[i + 1], out monitorIndex))
+                        {
+                            Console.WriteLine(help);
+                            return 1;
+                        }
+                        setMonitor = true;
+                        i++; // skip the index argument
+                    }
+                    // monitor flag consumes the next argument as the index
+                    else if (a == "-d" || a == "-depth")
+                    {
+                        if (i + 1 >= args.Length)
+                        {
+                            Console.WriteLine(help);
+                            return 1;
+                        }
+                        if (!int.TryParse(args[i + 1], out depthLimit))
+                        {
+                            Console.WriteLine(help);
+                            return 1;
+                        }
+                        i++; // skip the index argument
+                    }
+                    else
+                    {
+                        // collect non-flag arguments (file/directory, style, location)
+                        nonFlagArgs.Add(a);
                     }
                 }
-            }
 
-            int index = (setMonitor) ? 3 : 2;
-            // location directory may be specified
-            if (args.Length >= index + 1)
-            {
-                // make sure it's a directory
-                if (!Directory.Exists(args[index]))
+                // process positional (non-flag) arguments in order
+                if (nonFlagArgs.Count >= 1)
                 {
-                    Console.WriteLine("\n{0} is not a valid directory.", args[index]);
-                    return 1;
+                    path = nonFlagArgs[0];
                 }
-                storagePath = Path.Combine(args[index], "wallpaper." + fileType);
+                if (nonFlagArgs.Count >= 2)
+                {
+                    // try to parse style (name or numeric); if it parses, use it
+                    string s = nonFlagArgs[1];
+                    bool parsed = false;
+                    try
+                    {
+                        style = (Wallpaper.Style)Enum.Parse(typeof(Wallpaper.Style), s, true);
+                        parsed = true;
+                    }
+                    catch { }
+                    if (!parsed)
+                    {
+                        int si;
+                        if (int.TryParse(s, out si) && Enum.IsDefined(typeof(Wallpaper.Style), si))
+                        {
+                            style = (Wallpaper.Style)si;
+                            parsed = true;
+                        }
+                    }
+                    // if it wasn't a style but is an existing directory, treat it as the storage location
+                    if (!parsed && Directory.Exists(nonFlagArgs[1]))
+                    {
+                        storagePath = Path.Combine(nonFlagArgs[1], "wallpaper." + fileType);
+                    }
+                }
+                if (nonFlagArgs.Count >= 3)
+                {
+                    // third positional argument is always treated as the storage location
+                    if (!Directory.Exists(nonFlagArgs[2]))
+                    {
+                        Console.WriteLine("\n{0} is not a valid directory.", nonFlagArgs[2]);
+                        return 1;
+                    }
+                    storagePath = Path.Combine(nonFlagArgs[2], "wallpaper." + fileType);
+                }
             }
 
             if (usingConfig)
             {
-                String file;
+                string file;
                 ProcessConfig(path, out file, out style, out setMonitor, out monitorIndex);
                 if (file == null)
                 {
@@ -305,7 +366,7 @@ namespace WallpaperChanger
             }
             else if (Directory.Exists(path))
             {
-                String file = ProcessDirectory(path);
+                var file = ProcessDirectory(path, depthLimit);
                 if (file == null)
                 {
                     Console.WriteLine("\nNo valid images found in {0}.", path);
@@ -329,21 +390,20 @@ namespace WallpaperChanger
         }
 
         /// <summary>
-        /// Get the list of files from the given directory and choose a random image file
+        ///     Get the list of files from the given directory and choose a random image file
         /// </summary>
-        /// <param name="path"></param>
-        /// <returns></returns>
-        static String ProcessDirectory(String path)
+        /// <param name="path">
+        ///     The path to process
+        /// </param>
+        /// <param name="depthLimit">
+        ///     The depth limit
+        /// </param>
+        /// <returns>
+        ///     Returns the chosen image file
+        /// </returns>
+        public static string ProcessDirectory(string path, int depthLimit = 1)
         {
-            ArrayList files = new ArrayList();
-            bool finished = false;
-            String file = null;
-
-            // get the list of files in the directory
-            foreach (String tmpFile in Directory.GetFiles(path))
-            {
-                files.Add(tmpFile);
-            }
+            var files = FindImageFiles(path, depthLimit: depthLimit);
 
             if (files.Count == 0) // ignore empty directories
             {
@@ -352,34 +412,45 @@ namespace WallpaperChanger
 
             // initialize a Random object with a unique seed (based on the current time)
             Random randomObject = new Random(((int)DateTime.Now.Ticks));
+            
+            // pick a random index from the list
+            int index = randomObject.Next(0, files.Count);
+            return files[index];
+        }
 
-            // select a random file and check it against the list of file types
-            while (!finished)
+        /// <summary>
+        ///     Recursively finds all image files in the given directory and sub-directories
+        /// </summary>
+        /// <param name="path">
+        ///     The path to process
+        /// </param>
+        /// <param name="currentDepth">
+        ///     The current depth
+        /// </param>
+        /// <param name="depthLimit">
+        ///     The depth limit
+        /// </param>
+        /// <returns>
+        ///     Returns a list of image files
+        /// </returns>
+        public static List<string> FindImageFiles(string path, int currentDepth = 1, int depthLimit = 1)
+        {
+            // get the list of image files in the directory
+            var files = Directory.GetFiles(path).Where(f =>
+                f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
+                || f.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+                || f.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase)
+                ).ToList();
+
+            if (currentDepth < depthLimit)
             {
-                // pick a random index from the list
-                int index = randomObject.Next(0, files.Count);
-
-                String f = (String)files[index];
-                // this is an image file
-                if (f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".png", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase))
+                foreach (var d in Directory.GetDirectories(path))
                 {
-                    file = f;
-                    finished = true;
-                }
-                // this is not an image, remove it from the list
-                else
-                {
-                    files.RemoveAt(index);
-                }
-
-                // if the files list is now empty, end the loop
-                if (files.Count == 0)
-                {
-                    finished = true;
+                    files.AddRange(FindImageFiles(d, currentDepth + 1, depthLimit));
                 }
             }
-            
-            return file;
+
+            return files;
         }
 
         /// <summary>
@@ -390,20 +461,21 @@ namespace WallpaperChanger
         /// <param name="style">filled in with the style</param>
         /// <param name="setMonitor">filled in with true if a monitor index was specified, false otherwise</param>
         /// <param name="monitorIndex">filled in with the monitor index (when specified)</param>
-        static void ProcessConfig(String path, out String file, out Style style, out bool setMonitor, out int monitorIndex)
+        public static void ProcessConfig(string path, out string file, out Style style, out bool setMonitor, out int monitorIndex)
         {
             file = null;
             style = Style.Stretched;
             setMonitor = false;
             monitorIndex = 0;
-            ArrayList files = new ArrayList();
+            int depthLimit = 1;
+            var files = new List<string>();
             bool finished = false;
             
             try
             {
                 using (StreamReader sr = new StreamReader(path))
                 {
-                    String line;
+                    string line;
                     while ((line = sr.ReadLine()) != null)
                     {
                         files.Add(line);
@@ -430,35 +502,59 @@ namespace WallpaperChanger
                 // pick a random index from the list
                 int index = randomObject.Next(0, files.Count);
 
-                String f = (String)files[index];
-                // parse the file
-                // can contain file and optionally the monitor index or style
+                var f = files[index];
+                // parse the line
+                // can contain file/directory and optionally the monitor index or style
                 // split on the space between them, and combine values within double quotes (e.g. files with a space in the path)
                 MatchCollection matches = Regex.Matches(f, @"(?<match>[^\s""]+)|""(?<match>[^""]*)""");
-                String tmpFile = matches[0].Groups["match"].Value;
+                var fileOrDirectory = matches[0].Groups["match"].Value;
 
-                // make sure the image exists
-                if (File.Exists(tmpFile))
+                // parse the other options; -m and -d can appear in any order, style is expected to be last
+                if (matches.Count >= 2)
                 {
-                    file = tmpFile;
-                    finished = true;
-
-                    // parse the other options
-                    if (matches.Count >= 2)
+                    for (int i = 1; i < matches.Count; i++)
                     {
-                        string value = matches[1].Groups["match"].Value;
-                        // check if a monitor index is specified
+                        string value = matches[i].Groups["match"].Value;
                         if (value == "-m" || value == "-monitor")
                         {
-                            if (matches.Count >= 3 && IsWin8OrHigher() && int.TryParse(matches[2].Groups["match"].Value, out monitorIndex))
+                            if (i + 1 < matches.Count && IsWin8OrHigher() && int.TryParse(matches[i + 1].Groups["match"].Value, out monitorIndex))
                             {
                                 setMonitor = true;
+                                i++; // skip index
                             }
                         }
-                        // otherwise parse the style
-                        else
-                            style = (Wallpaper.Style)Enum.Parse(typeof(Wallpaper.Style), matches[1].Groups["match"].Value);
+                        else if (value == "-d" || value == "-depth")
+                        {
+                            if (i + 1 < matches.Count && int.TryParse(matches[i + 1].Groups["match"].Value, out depthLimit))
+                            {
+                                i++; // skip depth value
+                            }
+                        }
+                        else if (i == matches.Count - 1)
+                        {
+                            // treat last token as the style
+                            style = (Wallpaper.Style)Enum.Parse(typeof(Wallpaper.Style), value);
+                        }
                     }
+                }
+                
+                // if it is a directory, find all image files and pick one
+                if (Directory.Exists(fileOrDirectory))
+                {
+                    file = ProcessDirectory(fileOrDirectory, depthLimit);
+                    if (file == null)
+                    {
+                        files.RemoveAt(index);
+                        continue;
+                    }
+
+                    finished = true;
+                }
+                // make sure the image exists
+                else if (File.Exists(fileOrDirectory))
+                {
+                    file = fileOrDirectory;
+                    finished = true;
                 }
                 // remove it from the list
                 else
