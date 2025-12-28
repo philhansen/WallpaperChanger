@@ -5,7 +5,7 @@ WallpaperChanger is a command line utility for changing the wallpaper (desktop b
 
 The intent of this program is not to be a standalone wallpaper program (it is too cumbersome to use for that). It is intended to be used as a “helper” utility program for another program or script.
 
-This utility works fine with Windows XP, Vista, 7, 8, and 10.
+This utility works fine with Windows XP (version 1.8), Vista (version 1.8), 7, 8, 10, and 11.
 
 The compiled program is available on the Releases page: https://github.com/philhansen/WallpaperChanger/releases
 
@@ -35,15 +35,16 @@ If the style argument is not specified it will default to Stretched.
 Optional flags:
 *   -h, -help   - Display the usage help
 *   -r, -remove - Remove the current wallpaper
-*   -m, monitor <index> - Set the image on the specified monitor (0 indexed)
+*   -m, -monitor <index> - Set the image on the specified monitor (0 indexed)
+*   -d, -depth <depth limit> - Set the depth for searching directories for image files (e.g. depth 2 will search the initial directory and 1 level deeper). Default is 1.
 
 When using the monitor option, the full syntax is: `-m <index> <file|directory> <location>`  The style does not need to be specified since it appears to always default to Stretched.  Note this functionality is only available on Windows 8 or higher.
 
 Alternatively a config file can be placed in the same directory as the 
 WallpaperChanger executable. The file should be named 'config' without 
 any file extension.  Each line in the file should have the full path to 
-an image and can optionally include the monitor index or the style code to use.  If the style
-is not specified it will default to Stretched.
+an image or directory and can optionally include the monitor index, directory depth, or the style code to use.  If the style
+is not specified it will default to Stretched.  If the directory depth is not specified it will default to 1.
 
 When setting the monitor index in the config file the format of the line should be: `<file> -m <index>`
 
@@ -57,6 +58,7 @@ C:\wallpaper\wallpaper2.jpg 3
 D:\wallpaper3.png 2
 "D:\wallpapers to use\image1.jpg"
 C:\wallpaper4.jpg -m 1
+C:\wallpaper
 etc.
 ```
 
@@ -68,10 +70,11 @@ An error code will be returned if the program had an exception, for example inva
 
 ## Building the Program
 
-I currently build the program using Microsoft Visual Studio 2017 Community edition.  It targets the .NET Framework v2.0 as that is all it requires.
+The program now targets .Net Framework 4.8 which supports Windows 7+.  Previous versions (until 1.8) targeted the .NET Framework v2.0 which supported Windows XP+.
 
 ## What’s New
 
+* 1.9 - New depth parameter when searching for files in directories, config file supports directories, changed to .Net Framework 4.8 supporting Windows 7+
 * 1.8 - Config file now supports the monitor index flag to set the wallpaper for a specific monitor (Windows 8 or higher) 
 * 1.7 - Added ability to set the wallpaper for a specific monitor (Windows 8 or higher)
 * 1.6 - Use png file for Windows 8 or higher, otherwise use bmp file
