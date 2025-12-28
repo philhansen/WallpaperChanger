@@ -58,7 +58,7 @@ C:\wallpaper\wallpaper2.jpg 3
 D:\wallpaper3.png 2
 "D:\wallpapers to use\image1.jpg"
 C:\wallpaper4.jpg -m 1
-C:\wallpaper
+C:\wallpaper -d 3
 etc.
 ```
 
